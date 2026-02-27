@@ -52,7 +52,7 @@ variable "cluster_version" {
 variable "node_instance_type" {
   description = "EC2 instance type for worker nodes"
   type        = string
-  default     = "t3.medium"   # 2 vCPU, 4GB RAM — good for dev
+  default     = "t3.micro"   # 2 vCPU, 4GB RAM — good for dev
 }
 
 variable "node_desired_size" {

@@ -17,7 +17,7 @@ private_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
 
 # EKS
 cluster_version    = "1.29"
-node_instance_type = "t3.medium"    # $0.0416/hr — good for dev
+node_instance_type = "t3.micro"    # $0.0416/hr — good for dev
 node_desired_size  = 2               # Start with 2 nodes
 node_min_size      = 1
 node_max_size      = 3
