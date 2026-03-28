@@ -1,0 +1,99 @@
+# ============================================================================
+# kube-prometheus-stack Helm Values
+# ============================================================================
+# Installs: Prometheus Operator + Prometheus + Grafana + AlertManager + Node Exporter
+#
+# Install command:
+#   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+#   helm repo update
+#   kubectl create namespace monitoring
+#   helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+#     --namespace monitoring \
+#     --values monitoring/kube-prometheus-stack-values.yaml \
+#     --wait --timeout 10m
+#
+# Access Grafana:
+#   kubectl port-forward svc/kube-prometheus-stack-grafana 3000:80 -n monitoring
+#   Open: http://localhost:3000  (admin / prom-operator)
+# ============================================================================
+
+# ── Prometheus ────────────────────────────────────────────────────────────────
+prometheus:
+  prometheusSpec:
+    retention: 15d
+
+    # Watch ServiceMonitors across ALL namespaces (picks up the fastapi ServiceMonitor)
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+
+    # Watch PodMonitors across all namespaces too
+    podMonitorSelector: {}
+    podMonitorNamespaceSelector: {}
+
+    # No persistent storage — uses ephemeral storage (fine for dev)
+    # For production, install the EBS CSI driver add-on in Terraform first:
+    #   resource "aws_eks_addon" "ebs_csi" { addon_name = "aws-ebs-csi-driver" }
+    # Then re-enable storageSpec with storageClassName: gp2
+
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "300m"
+        memory: "512Mi"
+
+# ── Grafana ───────────────────────────────────────────────────────────────────
+grafana:
+  # No password hardcoded here — reference a pre-created Kubernetes Secret.
+  # Create it once before first helm install:
+  #   kubectl create namespace monitoring
+  #   kubectl create secret generic grafana-admin-secret \
+  #     --from-literal=admin-user=admin \
+  #     --from-literal=admin-password=$(openssl rand -base64 16) \
+  #     --namespace monitoring
+  #
+  # Retrieve password anytime:
+  #   kubectl get secret grafana-admin-secret -n monitoring \
+  #     -o jsonpath="{.data.admin-password}" | base64 --decode
+  admin:
+    existingSecret: grafana-admin-secret
+    userKey: admin-user
+    passwordKey: admin-password
+
+  # Expose Grafana via AWS LoadBalancer (creates an ELB on EKS)
+  # For local access use: kubectl port-forward svc/kube-prometheus-stack-grafana 3000:80 -n monitoring
+  service:
+    type: LoadBalancer
+    port: 80
+
+  # Sidecar watches for ConfigMaps with label grafana_dashboard=1 and auto-loads them
+  sidecar:
+    dashboards:
+      enabled: true
+      searchNamespace: ALL    # Look in all namespaces for dashboard ConfigMaps
+      label: grafana_dashboard
+      labelValue: "1"
+
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "100m"
+      memory: "128Mi"
+
+  # Default dashboards — keep the useful ones
+  defaultDashboardsEnabled: true
+
+# ── AlertManager ─────────────────────────────────────────────────────────────
+alertmanager:
+  enabled: false   # Disabled to save memory on t3.micro — enable on larger nodes
+
+# ── Node Exporter ─────────────────────────────────────────────────────────────
+nodeExporter:
+  enabled: true   # Scrapes CPU/memory/disk from each EKS node
+
+# ── kube-state-metrics ────────────────────────────────────────────────────────
+kubeStateMetrics:
+  enabled: true   # Scrapes Kubernetes object states (pods, deployments, etc.)

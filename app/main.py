@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # ---------- App Configuration ----------
 APP_VERSION = os.getenv("APP_VERSION", "1.0.0")
@@ -34,6 +35,13 @@ app = FastAPI(
     docs_url="/docs",      # Swagger UI — auto-generated!
     redoc_url="/redoc",    # Alternative docs UI
 )
+
+# ---------- Prometheus Metrics ----------
+# Exposes /metrics endpoint with:
+#   http_request_duration_seconds — latency histogram (p50/p90/p99)
+#   http_request_duration_seconds_count — request counter (throughput)
+#   http_requests_in_progress — current in-flight requests
+Instrumentator().instrument(app).expose(app)
 
 
 @app.get("/", tags=["Application"])

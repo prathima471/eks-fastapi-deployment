@@ -54,3 +54,13 @@ ingress:
 
 serviceAccount:
   create: false
+
+# ── Prometheus Monitoring ──────────────────────────────────────────────────────
+# ServiceMonitor tells Prometheus Operator to scrape /metrics from this app.
+# Requires kube-prometheus-stack to be installed in the cluster (namespace: monitoring).
+monitoring:
+  enabled: true
+  serviceMonitor:
+    interval: "15s"      # How often Prometheus scrapes /metrics
+    path: /metrics
+    namespace: monitoring  # Namespace where Prometheus Operator is installed

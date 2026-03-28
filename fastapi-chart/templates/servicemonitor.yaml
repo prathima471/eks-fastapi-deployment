@@ -1,0 +1,24 @@
+{{- if .Values.monitoring.enabled }}
+# ServiceMonitor — tells Prometheus Operator to scrape /metrics from this app.
+# The Prometheus instance in the monitoring namespace watches for ServiceMonitors
+# across all namespaces (configured via serviceMonitorNamespaceSelector: {}).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "fastapi-chart.fullname" . }}
+  namespace: {{ .Values.monitoring.serviceMonitor.namespace }}
+  labels:
+    {{- include "fastapi-chart.labels" . | nindent 4 }}
+    release: kube-prometheus-stack   # Must match Prometheus Operator's serviceMonitorSelector
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}     # Watch the namespace where the app is deployed
+  selector:
+    matchLabels:
+      {{- include "fastapi-chart.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http                     # Matches the port name added to service.yaml
+      path: {{ .Values.monitoring.serviceMonitor.path }}
+      interval: {{ .Values.monitoring.serviceMonitor.interval }}
+{{- end }}

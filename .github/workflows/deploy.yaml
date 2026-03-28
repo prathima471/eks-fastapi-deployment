@@ -111,7 +111,7 @@ jobs:
           image-ref: ${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.meta.outputs.tag }}
           format: 'table'
           severity: 'CRITICAL,HIGH'
-          exit-code: '0'          # Don't fail build on vulnerabilities (change to 1 for strict)
+          exit-code: '0'
 
       - name: Push to ECR
         run: |
@@ -151,6 +151,25 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v3
 
+      - name: Install monitoring stack (kube-prometheus-stack)
+        run: |
+          # Add Prometheus community Helm repo
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+
+          # Create monitoring namespace (idempotent)
+          kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+
+          # Install/upgrade Prometheus + Grafana (idempotent, ~5 min on first install)
+          helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+            --namespace monitoring \
+            --values monitoring/kube-prometheus-stack-values.yaml \
+            --wait \
+            --timeout 600s
+
+          # Apply Grafana dashboard ConfigMap (auto-loaded by Grafana sidecar)
+          kubectl apply -f monitoring/grafana-dashboard-configmap.yaml
+
       - name: Deploy with Helm
         run: |
           helm upgrade --install fastapi-app ./fastapi-chart \
@@ -166,3 +185,6 @@ jobs:
         run: |
           kubectl get pods -l app.kubernetes.io/name=fastapi-chart
           kubectl get svc
+          echo "--- Monitoring stack ---"
+          kubectl get pods -n monitoring
+          kubectl get svc -n monitoring | grep grafana
