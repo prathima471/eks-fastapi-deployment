@@ -39,3 +39,8 @@ output "oidc_provider_arn" {
   description = "OIDC provider ARN (for IRSA setup)"
   value       = aws_iam_openid_connect_provider.eks.arn
 }
+
+output "github_actions_role_arn" {
+  description = "Set this as the AWS_ROLE_ARN secret in your GitHub repository settings"
+  value       = aws_iam_role.github_actions.arn
+}

@@ -7,6 +7,7 @@
 # ============================================================================
 
 aws_region         = "us-east-1"
+github_repo        = "prathima471/eks-fastapi-deployment"  # e.g. "john/eks-fastapi-deployment"
 project_name       = "eks-fastapi"
 environment        = "dev"
 

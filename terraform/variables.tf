@@ -78,3 +78,8 @@ variable "node_disk_size" {
   type        = number
   default     = 30
 }
+
+variable "github_repo" {
+  description = "GitHub repository in format owner/repo (e.g. john/eks-fastapi-deployment)"
+  type        = string
+}
